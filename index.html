@@ -1,0 +1,552 @@
+<html>
+<head>
+    <title>Street Fighter V - Oki Analysis</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-3.1.0.min.js"
+            integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script>
+    <style>
+        .table { margin-bottom: 0; }
+        table th {
+            font-size: smaller;
+        }
+        table td {
+            font-size: small;
+        }
+        .nav-tabs {
+            border-bottom: none;
+        }
+        .situation a > * {
+            height: 20px;
+            padding: 3px;
+        }
+        .situation a {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .situation a:link, .situation a:visited , .situation a:hover , .situation a:active  {
+            color: inherit;
+            text-decoration: none;
+        }
+        tr > * {
+            min-width: 72px;
+            padding: 4px !important;
+        }
+        .flip {
+            float: left;
+            margin-left: -5px;
+            margin-top: -5px;
+            padding: 1px 3px 3px;
+            cursor: pointer;
+            background: lightgray;
+        }
+        .neutral-cell {
+            background-color: lightgray;
+        }
+        .attack-table .attack-cell, .defense-table .defense-cell {
+            color: #3c763d;
+            background-color: #dff0d8;
+        }
+
+        .attack-table .defense-cell, .defense-table .attack-cell {
+            color: #a94442;
+            background-color: #f2dede;
+        }
+        #legend {
+            text-align: right;
+            font-size: small;
+            margin: 1em 0em;
+        }
+        .legend {
+            display: inline-block;
+            border: 1px solid lightgray;
+            padding: 3px;
+            border-radius: 5px;
+            margin: 2px;
+        }
+        .legend .icon {
+            min-width: 1.5em;
+            display: inline-block;
+            text-align: center;
+        }
+    </style>
+    <script>
+        // data
+        var available_defenses = ["Low Guard", "Perfect Guard","Backdash","Jump","Jump Tech OS", "Jump Cancel VT","Throw","Delayed Throw", "Special Throw", "Light","Invincible Reversal", "3f Reversal","Zangief CA"];
+        var available_attacks = ["Low Light", "Delayed Light", "Delayed Meaty", "Throw", "Delayed Throw", "Special Throw", "Air Special Throw", "Guard", "Backdash", "Shimmy", "Safe Jump",  "Instant Overhead"];
+        var data = {"Low Light vs Jump": ["Attack", "Hit"], "Throw vs Light": ["Attack", "Hit"], "Guard vs Invincible Reversal": ["Attack", "Large", "Close"], "Safe Jump vs Backdash": ["Attack", "Hit"], "Delayed Light vs Invincible Reversal": ["Attack", "Large", "Close"], "Delayed Throw vs Jump Tech OS": ["Attack", "Medium", "Far"], "Backdash vs Light": ["Defense", "Small", "Ranged"], "Special Throw vs Invincible Reversal": ["Defense", "Hit"], "Low Light vs Perfect Guard": ["Attack", "Small", "Close"], "Backdash vs Delayed Throw": ["Attack", "Medium", "Ranged"], "Delayed Throw vs Backdash": ["Defense", "Medium", "Ranged"], "Delayed Light vs Zangief CA": ["Defense", "Hit"], "Special Throw vs Special Throw": ["Attack", "Hit"], "Backdash vs 3f Reversal": ["Attack", "Large", "Ranged"], "Shimmy vs 3f Reversal": ["Attack", "Large", "Ranged"], "Low Light vs Low Guard": ["Attack", "Small", "Close"], "Special Throw vs Delayed Throw": ["Attack", "Hit"], "Throw vs 3f Reversal": ["Defense", "Hit"], "Special Throw vs Jump Tech OS": ["Defense", "Counter", "Hit"], "Guard vs Low Guard": ["Neutral"], "Instant Overhead vs Light": ["Attack", "Hit"], "Throw vs Special Throw": ["Attack", "Hit"], "Special Throw vs Throw": ["Attack", "Hit"], "Guard vs Backdash": ["Attack", "Medium", "Ranged"], "Throw vs Zangief CA": ["Defense", "Hit"], "Air Special Throw vs Special Throw": ["Defense", "Small", "Close"], "Shimmy vs Throw": ["Attack", "Hit"], "Instant Overhead vs Jump": ["Attack", "Hit"], "Delayed Meaty vs Special Throw": ["Attack", "Counter", "Hit"], "Air Special Throw vs Low Guard": ["Defense", "Large", "Ranged"], "Special Throw vs Jump Cancel VT": ["Defense", "Hit"], "Safe Jump vs 3f Reversal": ["Defense", "Hit"], "Delayed Meaty vs Low Guard": ["Attack", "Small", "Close"], "Throw vs Backdash": ["Defense", "Small", "Ranged"], "Delayed Meaty vs Throw": ["Attack", "Counter", "Hit"], "Delayed Light vs Special Throw": ["Defense", "Hit"], "Guard vs Delayed Throw": ["Defense", "Counter", "Hit"], "Delayed Light vs Perfect Guard": ["Attack", "Small", "Close"], "Guard vs 3f Reversal": ["Attack", "Large", "Close"], "Low Light vs 3f Reversal": ["Defense", "Hit"], "Delayed Light vs Jump Cancel VT": ["Attack", "Medium", "Close"], "Instant Overhead vs Zangief CA": ["Attack", "Small", "Ranged"], "Shimmy vs Low Guard": ["Defense", "Small", "Ranged"], "Low Light vs Invincible Reversal": ["Defense", "Hit"], "Instant Overhead vs Low Guard": ["Attack", "Hit"], "Guard vs Special Throw": ["Defense", "Hit"], "Air Special Throw vs Invincible Reversal": ["Defense", "Counter", "Hit"], "Air Special Throw vs Perfect Guard": ["Defense", "Large", "Ranged"], "Instant Overhead vs Throw": ["Attack", "Hit"], "Instant Overhead vs Special Throw": ["Attack", "Counter", "Hit"], "Guard vs Jump": ["Attack", "Medium", "Close"], "Backdash vs Jump Tech OS": ["Attack", "Large", "Far"], "Throw vs Perfect Guard": ["Attack", "Hit"], "Delayed Light vs Backdash": ["Attack", "Small", "Ranged"], "Delayed Light vs Low Guard": ["Attack", "Small", "Close"], "Low Light vs Backdash": ["Attack", "Hit"], "Backdash vs Special Throw": ["Attack", "Large", "Ranged"], "Throw vs Jump Tech OS": ["Neutral"], "Shimmy vs Light": ["Defense", "Small", "Ranged"], "Low Light vs Light": ["Attack", "Small", "Close"], "Shimmy vs Jump": ["Attack", "Medium", "Close"], "Special Throw vs Zangief CA": ["Defense", "Hit"], "Delayed Meaty vs Zangief CA": ["Defense", "Hit"], "Delayed Throw vs Zangief CA": ["Defense", "Hit"], "Backdash vs Throw": ["Attack", "Medium", "Ranged"], "Delayed Meaty vs Jump Tech OS": ["Attack", "Hit"], "Special Throw vs Jump": ["Defense", "Hit"], "Delayed Meaty vs Jump": ["Attack", "Hit"], "Shimmy vs Jump Cancel VT": ["Attack", "Medium", "Ranged"], "Low Light vs Jump Tech OS": ["Attack", "Small", "Close"], "Throw vs Invincible Reversal": ["Defense", "Hit"], "Low Light vs Throw": ["Attack", "Small", "Close"], "Delayed Meaty vs Jump Cancel VT": ["Attack", "Hit"], "Backdash vs Zangief CA": ["Attack", "Large", "Close"], "Air Special Throw vs Throw": ["Defense", "Large", "Ranged"], "Shimmy vs Invincible Reversal": ["Attack", "Large", "Ranged"], "Shimmy vs Jump Tech OS": ["Attack", "Medium", "Far"], "Instant Overhead vs Delayed Throw": ["Attack", "Hit"], "Shimmy vs Special Throw": ["Defense", "Hit"], "Air Special Throw vs Jump": ["Attack", "Hit"], "Delayed Throw vs 3f Reversal": ["Attack", "Large", "Close"], "Delayed Throw vs Delayed Throw": ["Neutral"], "Guard vs Jump Cancel VT": ["Attack", "Medium", "Close"], "Backdash vs Jump Cancel VT": ["Attack", "Small", "Ranged"], "Instant Overhead vs Jump Tech OS": ["Attack", "Hit"], "Air Special Throw vs 3f Reversal": ["Defense", "Hit"], "Shimmy vs Backdash": ["Defense", "Medium", "Ranged"], "Guard vs Zangief CA": ["Defense", "Hit"], "Delayed Meaty vs Light": ["Attack", "Counter", "Hit"], "Delayed Throw vs Perfect Guard": ["Attack", "Counter", "Hit"], "Throw vs Jump Cancel VT": ["Defense", "Hit"], "Safe Jump vs Jump Tech OS": ["Attack", "Hit"], "Backdash vs Jump": ["Attack", "Medium", "Ranged"], "Special Throw vs Backdash": ["Defense", "Large", "Ranged"], "Low Light vs Jump Cancel VT": ["Attack", "Hit"], "Delayed Throw vs Invincible Reversal": ["Attack", "Large", "Close"], "Instant Overhead vs Jump Cancel VT": ["Defense", "Medium", "Close"], "Delayed Meaty vs Perfect Guard": ["Attack", "Small", "Close"], "Throw vs Throw": ["Neutral"], "Delayed Throw vs Jump Cancel VT": ["Attack", "Medium", "Close"], "Delayed Meaty vs Delayed Throw": ["Attack", "Small", "Close"], "Backdash vs Invincible Reversal": ["Attack", "Large", "Ranged"], "Air Special Throw vs Light": ["Defense", "Large", "Ranged"], "Safe Jump vs Low Guard": ["Attack", "Hit"], "Delayed Light vs Light": ["Defense", "Small", "Close"], "Safe Jump vs Light": ["Attack", "Hit"], "Air Special Throw vs Backdash": ["Defense", "Large", "Ranged"], "Shimmy vs Delayed Throw": ["Defense", "Counter", "Hit"], "Safe Jump vs Perfect Guard": ["Attack", "Small", "Close"], "Delayed Meaty vs Backdash": ["Attack", "Counter", "Hit"], "Delayed Throw vs Throw": ["Neutral"], "Air Special Throw vs Jump Cancel VT": ["Defense", "Medium", "Close"], "Delayed Light vs Delayed Throw": ["Attack", "Hit"], "Instant Overhead vs 3f Reversal": ["Defense", "Hit"], "Low Light vs Zangief CA": ["Defense", "Hit"], "Safe Jump vs Throw": ["Attack", "Hit"], "Delayed Throw vs Special Throw": ["Defense", "Hit"], "Safe Jump vs Jump Cancel VT": ["Attack", "Small", "Close"], "Low Light vs Delayed Throw": ["Attack", "Small", "Close"], "Delayed Meaty vs Invincible Reversal": ["Defense", "Hit"], "Guard vs Throw": ["Defense", "Counter", "Hit"], "Special Throw vs Perfect Guard": ["Attack", "Hit"], "Instant Overhead vs Backdash": ["Attack", "Hit"], "Throw vs Delayed Throw": ["Neutral"], "Guard vs Jump Tech OS": ["Attack", "Large", "Far"], "Special Throw vs 3f Reversal": ["Defense", "Hit"], "Throw vs Jump": ["Attack", "Medium", "Close"], "Safe Jump vs Invincible Reversal": ["Attack", "Large", "Close"], "Throw vs Low Guard": ["Attack", "Hit"], "Delayed Throw vs Jump": ["Attack", "Medium", "Close"], "Instant Overhead vs Perfect Guard": ["Defense", "Medium", "Close"], "Shimmy vs Zangief CA": ["Defense", "Hit"], "Delayed Meaty vs 3f Reversal": ["Defense", "Counter", "Hit"], "Backdash vs Backdash": ["Attack", "Medium", "Ranged"], "Delayed Light vs 3f Reversal": ["Attack", "Large", "Close"], "Safe Jump vs Zangief CA": ["Defense", "Hit"], "Delayed Light vs Jump Tech OS": ["Attack", "Large", "Far"], "Safe Jump vs Special Throw": ["Attack", "Counter", "Hit"], "Special Throw vs Low Guard": ["Attack", "Hit"], "Shimmy vs Perfect Guard": ["Defense", "Small", "Ranged"], "Instant Overhead vs Invincible Reversal": ["Attack", "Small", "Ranged"], "Delayed Light vs Throw": ["Defense", "Counter", "Hit"], "Backdash vs Low Guard": ["Defense", "Small", "Ranged"], "Air Special Throw vs Zangief CA": ["Attack", "Medium", "Close"], "Guard vs Light": ["Defense", "Small", "Close"], "Backdash vs Perfect Guard": ["Defense", "Small", "Ranged"], "Air Special Throw vs Jump Tech OS": ["Attack", "Hit"], "Safe Jump vs Jump": ["Attack", "Hit"], "Guard vs Perfect Guard": ["Neutral"], "Delayed Throw vs Light": ["Defense", "Small", "Close"], "Special Throw vs Light": ["Attack", "Hit"], "Delayed Light vs Jump": ["Attack", "Medium", "Close"], "Safe Jump vs Delayed Throw": ["Attack", "Hit"], "Delayed Throw vs Low Guard": ["Attack", "Counter", "Hit"], "Air Special Throw vs Delayed Throw": ["Defense", "Large", "Close"], "Low Light vs Special Throw": ["Attack", "Counter", "Hit"]};
+        var youtube = {"Instant Overhead vs Jump Tech OS": "/watch?v=K4u_xJPmDks", "Throw vs Low Guard": "/watch?v=dJU1opLO5Ho", "Delayed Light vs Perfect Guard": "/watch?v=rJ5TnZA0URc", "Instant Overhead vs Perfect Guard": "/watch?v=CZPrManbwSo", "Special Throw vs 3f Reversal": "/watch?v=_WJ7O2uf7KE", "Air Special Throw vs Throw": "/watch?v=AD4fUN4aL58", "Delayed Meaty vs Backdash": "/watch?v=Uzs6NA6CMZM", "Air Special Throw vs 3f Reversal": "/watch?v=v6HrI1cBVms", "Delayed Meaty vs Jump Cancel VT": "/watch?v=TzfQT0glAlY", "Backdash vs Jump Cancel VT": "/watch?v=ALpkf-VDoTs", "Low Light vs Perfect Guard": "/watch?v=STvJLtWwmOw", "Shimmy vs Invincible Reversal": "/watch?v=om-2geEzgQU", "Throw vs 3f Reversal": "/watch?v=xKY2rcFoGbk", "Backdash vs Invincible Reversal": "/watch?v=AwRNEDzdYuY", "Delayed Meaty vs Low Guard": "/watch?v=w0u7xpciVjg", "Backdash vs Light": "/watch?v=8Vf_ngqzCCc", "Delayed Throw vs Jump Tech OS": "/watch?v=nPwn8lc18K8", "Special Throw vs Jump": "/watch?v=Q9F0Uiex7Vc", "Safe Jump vs Perfect Guard": "/watch?v=EMwGjSNtgJo", "Delayed Meaty vs 3f Reversal": "/watch?v=RfXm0OyMUQw", "Shimmy vs Low Guard": "/watch?v=ru4G0Q7Yg-Y", "Backdash vs Perfect Guard": "/watch?v=m8DhKCZ93Xk", "Safe Jump vs Backdash": "/watch?v=HCdKbXg3MXY", "Instant Overhead vs Invincible Reversal": "/watch?v=siq-0v4pDOY", "Shimmy vs 3f Reversal": "/watch?v=u-RdsSOZAMo", "Instant Overhead vs Throw": "/watch?v=h2gdIXGH9mE", "Backdash vs Delayed Throw": "/watch?v=tA3v3B4aWok", "Backdash vs Special Throw": "/watch?v=OjQPhg8HjLg", "Delayed Light vs Low Guard": "/watch?v=L3j0YjL-6Qo", "Low Light vs Jump Cancel VT": "/watch?v=I6mHM8gIiN4", "Delayed Throw vs Invincible Reversal": "/watch?v=KwDnG91XO2w", "Throw vs Backdash": "/watch?v=EUXxPoFZEuY", "Delayed Light vs Special Throw": "/watch?v=xA_2EHVrxuQ", "Delayed Light vs Jump Tech OS": "/watch?v=Rs8BrWFtXH0", "Special Throw vs Jump Tech OS": "/watch?v=N1vqWiAaYT8", "Special Throw vs Low Guard": "/watch?v=8m1Hw34WMhg", "Shimmy vs Light": "/watch?v=g7STLfBvPwk", "Low Light vs Jump": "/watch?v=WXd4fSueOtI", "Safe Jump vs 3f Reversal": "/watch?v=HKbkQV2uDv4", "Shimmy vs Perfect Guard": "/watch?v=Xpmn0kv4khs", "Delayed Light vs 3f Reversal": "/watch?v=AqMJP9JLFHc", "Safe Jump vs Special Throw": "/watch?v=TBz9GOb7lzk", "Air Special Throw vs Invincible Reversal": "/watch?v=Uq0uI0ZUV-o", "Throw vs Jump Cancel VT": "/watch?v=82qcVHXS2WY", "Shimmy vs Jump Tech OS": "/watch?v=iRtYV8K13g4", "Delayed Throw vs Throw": "/watch?v=ugbFJOqwVkE", "Low Light vs 3f Reversal": "/watch?v=6hNsZtELbpY", "Special Throw vs Backdash": "/watch?v=lXibo0r1NAw", "Safe Jump vs Jump Cancel VT": "/watch?v=2lgyo-ciiVM", "Delayed Throw vs Delayed Throw": "/watch?v=mnwfSmqM6IY", "Backdash vs Jump": "/watch?v=2MOrOKWihUk", "Special Throw vs Zangief CA": "/watch?v=t_mPlm-3EUU", "Delayed Meaty vs Jump Tech OS": "/watch?v=ArxclYZFRXg", "Guard vs Throw": "/watch?v=h83nIikPysY", "Instant Overhead vs Special Throw": "/watch?v=UNS4w0gNndE", "Guard vs Invincible Reversal": "/watch?v=aEMjs8Rg5XM", "Backdash vs Backdash": "/watch?v=Z7vXzV62zFk", "Backdash vs Jump Tech OS": "/watch?v=-qB2iMF6Mv0", "Safe Jump vs Light": "/watch?v=T5Guee-R0yA", "Guard vs 3f Reversal": "/watch?v=Ek1nom0Mrqg", "Delayed Meaty vs Zangief CA": "/watch?v=f78lXAmIG3Y", "Instant Overhead vs Low Guard": "/watch?v=AxKzzPr5tOk", "Air Special Throw vs Zangief CA": "/watch?v=-5qdeoAmqjo", "Delayed Throw vs Jump Cancel VT": "/watch?v=kFJ-6UB6bYg", "Instant Overhead vs Delayed Throw": "/watch?v=7eNvJkD9ntg", "Delayed Light vs Throw": "/watch?v=ypeD--4cK04", "Low Light vs Delayed Throw": "/watch?v=sz8WMgEePcI", "Guard vs Jump": "/watch?v=h7gaypvFWB0", "Guard vs Jump Cancel VT": "/watch?v=MO_puaLwgpk", "Low Light vs Low Guard": "/watch?v=rsW7jJVwEkc", "Low Light vs Jump Tech OS": "/watch?v=DmT-em_PNgE", "Air Special Throw vs Jump Tech OS": "/watch?v=qaGwh3LYCz0", "Backdash vs 3f Reversal": "/watch?v=AeHd4Kom53M", "Throw vs Light": "/watch?v=yfUntM5ofs0", "Delayed Meaty vs Light": "/watch?v=MPSw6OhYtAI", "Air Special Throw vs Jump": "/watch?v=4EQZss79OIg", "Low Light vs Special Throw": "/watch?v=lwHluvsqjJM", "Delayed Throw vs Jump": "/watch?v=8rv2TiISMW0", "Guard vs Perfect Guard": "/watch?v=jNugq4h35O0", "Safe Jump vs Throw": "/watch?v=sBuepSQsdpg", "Shimmy vs Jump Cancel VT": "/watch?v=FTvw3XqRAfk", "Safe Jump vs Jump": "/watch?v=l_buavRC9m0", "Throw vs Invincible Reversal": "/watch?v=XA-3h21QmE8", "Air Special Throw vs Light": "/watch?v=aYGUm1YwCHA", "Special Throw vs Perfect Guard": "/watch?v=uvTuAiklJfU", "Delayed Meaty vs Jump": "/watch?v=ZajPUWMD9Sg", "Instant Overhead vs 3f Reversal": "/watch?v=z32aMU2EZ70", "Shimmy vs Delayed Throw": "/watch?v=G4vSD_r6qyc", "Air Special Throw vs Perfect Guard": "/watch?v=IjQeHlR6T7g", "Air Special Throw vs Low Guard": "/watch?v=epNsTcKfeE8", "Delayed Throw vs Perfect Guard": "/watch?v=krD_FFEXcMY", "Backdash vs Low Guard": "/watch?v=5Ot7fZVIUYc", "Instant Overhead vs Light": "/watch?v=Q3EZQqi6kno", "Guard vs Light": "/watch?v=kfGjLcXCudQ", "Special Throw vs Special Throw": "/watch?v=HYESseQUQec", "Delayed Light vs Light": "/watch?v=Ls0ThrjInhk", "Delayed Meaty vs Invincible Reversal": "/watch?v=-kXMKhjG7Io", "Low Light vs Invincible Reversal": "/watch?v=lHPbNc63Df0", "Delayed Meaty vs Delayed Throw": "/watch?v=fCItIiX0cEY", "Delayed Throw vs Low Guard": "/watch?v=-F6OxiiauH8", "Safe Jump vs Jump Tech OS": "/watch?v=rIcfvz2pNG8", "Air Special Throw vs Special Throw": "/watch?v=9p-oMgCB0mo", "Backdash vs Throw": "/watch?v=Y28sqyfnnvA", "Shimmy vs Backdash": "/watch?v=Grqa1NsVpTo", "Delayed Light vs Zangief CA": "/watch?v=tivqkHCcWVw", "Delayed Throw vs Light": "/watch?v=F-xrjkO876A", "Instant Overhead vs Zangief CA": "/watch?v=_8cdHSWdgpA", "Low Light vs Zangief CA": "/watch?v=ZF7jBnR3WDI", "Safe Jump vs Delayed Throw": "/watch?v=DEz25BCl4PM", "Delayed Light vs Backdash": "/watch?v=5bJMrEDAwZU", "Guard vs Zangief CA": "/watch?v=F-KNQP52lJE", "Special Throw vs Invincible Reversal": "/watch?v=WFBheGMZaWE", "Safe Jump vs Invincible Reversal": "/watch?v=DcuijpcLPfQ", "Delayed Meaty vs Throw": "/watch?v=AUibwyBnBCY", "Shimmy vs Jump": "/watch?v=mWfxR9itEvk", "Delayed Light vs Jump": "/watch?v=abuq-0PcZfk", "Delayed Light vs Delayed Throw": "/watch?v=wI8N_iIYH10", "Guard vs Low Guard": "/watch?v=NPwknteP_Kw", "Instant Overhead vs Jump Cancel VT": "/watch?v=RCHQJAhS4vQ", "Low Light vs Backdash": "/watch?v=xQ79hl2QHBc", "Shimmy vs Throw": "/watch?v=bjOPKgTKFTo", "Throw vs Perfect Guard": "/watch?v=KkPN4csPlkU", "Special Throw vs Delayed Throw": "/watch?v=8uFv5JyCSfQ", "Throw vs Zangief CA": "/watch?v=6mm1FAcg-NE", "Special Throw vs Light": "/watch?v=EGEWDIOhfKA", "Delayed Light vs Invincible Reversal": "/watch?v=nNesAm9E9Ts", "Guard vs Backdash": "/watch?v=9trQurcimAs", "Safe Jump vs Low Guard": "/watch?v=i71l1lot2go", "Shimmy vs Special Throw": "/watch?v=fuFxbuMLrrc", "Throw vs Jump": "/watch?v=9aHbz03MPs8", "Delayed Throw vs Special Throw": "/watch?v=oHQ1aY1bqPo", "Throw vs Special Throw": "/watch?v=p06zVzlAh_A", "Delayed Meaty vs Perfect Guard": "/watch?v=rubPBn84Oo4", "Delayed Throw vs Backdash": "/watch?v=7wreZSO75Og", "Shimmy vs Zangief CA": "/watch?v=wxeB3nG7anE", "Backdash vs Zangief CA": "/watch?v=kG1HHlb5jUI", "Special Throw vs Throw": "/watch?v=VIw4frQF814", "Instant Overhead vs Jump": "/watch?v=Mge2I8QOzAs", "Low Light vs Throw": "/watch?v=yiMz69mSbig", "Instant Overhead vs Backdash": "/watch?v=TqnlMNEzlLU", "Air Special Throw vs Delayed Throw": "/watch?v=C5PLKA379Zs", "Air Special Throw vs Jump Cancel VT": "/watch?v=FT3z-JYv-FQ", "Air Special Throw vs Backdash": "/watch?v=UEjX04VuKuc", "Throw vs Jump Tech OS": "/watch?v=5ktkFjI3dmE", "Guard vs Special Throw": "/watch?v=JPChi9RL85w", "Delayed Throw vs 3f Reversal": "/watch?v=str33_fc0EQ", "Guard vs Jump Tech OS": "/watch?v=ngDkVbe-WSg", "Throw vs Delayed Throw": "/watch?v=waZ6xfqpP50", "Delayed Throw vs Zangief CA": "/watch?v=GWDvq518s8c", "Special Throw vs Jump Cancel VT": "/watch?v=sIRccNEcVA4", "Throw vs Throw": "/watch?v=tZ-bOA0VjOE", "Low Light vs Light": "/watch?v=fN_kUtNPtDI", "Delayed Light vs Jump Cancel VT": "/watch?v=Rn51pgrDdmQ", "Delayed Meaty vs Special Throw": "/watch?v=avEvecnIJ1I", "Guard vs Delayed Throw": "/watch?v=G06nQFGIbR0", "Safe Jump vs Zangief CA": "/watch?v=maXt1EZZYmY"};
+        // render
+        var render_icons = {
+            "Counter": '<i class="glyphicon glyphicon-flash" aria-hidden="true"></i>',
+            "Defense": '<i class="fa fa-shield" aria-hidden="true"></i>',
+            "Attack": '<i class="fa fa-crosshairs" aria-hidden="true"></i>',
+            "Hit": '<i class="glyphicon glyphicon-star" aria-hidden="true"></i>',
+            "Small": '<i class="fa fa-hourglass-end" aria-hidden="true"></i>',
+            "Medium": '<i class="fa fa-hourglass-half" aria-hidden="true"></i>',
+            "Large": '<i class="fa fa-hourglass-start" aria-hidden="true"></i>',
+            "Neutral": '&nbsp;',
+            "Close": '',
+            "Ranged": '<i class="fa fa-arrows-h" aria-hidden="true"></i>',
+            "Far": '<span style="display: inline-block"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><i class="fa fa-long-arrow-right" aria-hidden="true"></i></span>'
+        };
+        var icons_order = ["Attack", "Defense", "Hit", "Counter", "Small", "Medium", "Large", "Ranged", "Far"];
+        var icons_label = ["Attack wins the wake up game", "Defense wins the wake up game", "Hit", "Counter", "Small frame advantage (&lt;5f)", "Medium frame advantage (&lt;30f)", "Large frame advantage (&ge;30f)", "Players are not at range at the end", "Players are far from each other"];
+        var attack_first = true;
+        var show_stats = false;
+        var render_entry = function(entry) {
+            return entry.map(function (a) {
+                return render_icons[a];
+            }).join("");
+        };
+        var render_table = function () {
+            var components = attack_first ? [available_attacks, available_defenses] : [available_defenses, available_attacks];
+            var i, j;
+            var html = "";
+            html += "<thead><tr>";
+            html += "<th><div onclick='flip()' class='flip'><i class='glyphicon glyphicon-retweet' aria-hidden='true'></i></div><div style='float: right'>" + (!attack_first ? "defense" : "attack") + "</div><br><div style='float:left;'>" + (attack_first ? "defense" : "attack") + "</div></th>";
+
+            var stats = {};
+            for (i = 0; i < components[0].length; i++) {
+                stats[components[0][i]] = {};
+                html += ("<th>" + components[0][i] + "</th>");
+            }
+            html += ("</tr></thead><tbody class='" + (!attack_first ? "defense-table" : "attack-table") + "'>");
+
+            for (j = 0; j < components[1].length; j++) {
+                var defense_name = components[1][j];
+                if (!show_stats)
+                    html += "<tr><th>" + defense_name + "</th>";
+                for (i = 0; i < components[0].length; i++) {
+                    var attack_name = components[0][i];
+                    var situation = attack_first ? attack_name + " vs " + defense_name : defense_name + " vs " + attack_name;
+                    var classes = "situation " + data[situation].map(function (a) {
+                                return a.toLowerCase() + "-cell";
+                            }).join(" ");
+                    data[situation].forEach(function (res) {
+                        if (res == "Neutral" || res == "Close") return;
+                        stats[attack_name][res] = (stats[attack_name][res] || 0) + 1;
+                    });
+
+                    if (!show_stats)
+                        html += "<td class='" + classes + "'><a href='http://youtube.com" + youtube[situation] + "' target='_blank'>" + render_entry(data[situation]) + "</a></td>";
+                }
+
+                if (!show_stats)
+                    html += ("</tr>");
+            }
+
+            if (show_stats) {
+                for (j = 0; j < icons_order.length; j++) {
+                    var icon = icons_order[j];
+
+                    html += ("<tr><th>" + render_icons[icon] + "</th>");
+                    for (i = 0; i < components[0].length; i++) {
+                        var res = "";
+                        if (stats[components[0][i]][icon]) {
+                            res = Math.round(stats[components[0][i]][icon] * 100 / components[1].length) + "%";
+                        }
+                        html += ('<td class="' + icon.toLowerCase() + "-cell" + '"><div style="position: relative; bottom: 0px; left: 0px; width: ' + (res || 0) + '; background-color: blue; height: 2px; display: block;"></div>' + res + "</td>");
+                    }
+                }
+                html += ("</tr>");
+            }
+            html += ("</tbody>");
+            var nav = $(".nav > *");
+            nav.eq(show_stats ? 0 : 1).removeClass("active");
+            nav.eq(show_stats ? 1 : 0).addClass("active");
+            $("#content").html(html);
+        };
+        var render_legend = function() {
+            $("#legend").html(icons_order.map(function(a, i) { return "<div class='legend'><span class='icon'>"+render_icons[a]+"</span>"+icons_label[i]+"</div>"; }).join(""));
+        };
+        var flip = function() {
+            attack_first = !attack_first;
+            render_table(attack_first);
+        };
+        var selectMenu = function(selected) {
+            show_stats = selected;
+            render_table(attack_first);
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+    <h1>
+        Street Fighter V - Wake Up Analysis <small>coded with love by <a href="https://twitter.com/WydD">@WydD</a></small>
+    </h1>
+    </div>
+
+    <ul class="nav nav-tabs">
+        <li role="presentation" class="active" onclick="selectMenu(false)"><a href="#">Details</a></li>
+        <li role="presentation"><a href="#" onclick="selectMenu(true)">Stats</a></li>
+    </ul>
+    <table class='table table-bordered table-condensed' id="content"></table>
+    <div style="width: 100%; text-align: right;">click in a cell to see the situation in video! (don't hesitate to use the speed feature from youtube)</div>
+    <div id="legend"></div>
+
+    <h2>Questions and Answers</h2>
+    <dl>
+        <dt>So what's this about?</dt>
+        <dd>This table represents every situations (or at the most common ones) in the wake-up mind-game for Street Fighter V.</dd>
+        <dt>What for?</dt>
+        <dd>SFV needs quick decision making, and from what I've seen, even people at Gold Level still have a hard time to understand how some situations behave. So I created all situations, now you can see them in action and perfectly executed.</dd>
+        <dt>How can it actually be useful?</dt>
+        <dd>Try to answer the question "should I backdash or should I jump to avoid a potential throw?" in 10s. I know I learned one or two things while doing this and I'm gold so most people should benefit from this.</dd>
+        <dt>How perfect the input are?</dt>
+        <dd>They are exactly as described in the later sections. I've created a laboratory to inject frame-by-frame inputs from both sides.</dd>
+        <dt>How perfect should the input be?</dt>
+        <dd>That depends on the situation of course, here I suppose the inputs are perfect, for instance if you're going for a DP but you're not reversal it's not in the chart.</dd>
+        <dt>You said that the attacker is now on advantage but the defender is blocking.</dt>
+        <dd>If you are attacking and you are on block you still have the initiative, that's something to take into account and that why the empty hourglass icon is here to represent.</dd>
+        <dt>Why did you pick those characters?</dt>
+        <dd>Cammy is my main so I know here normals and options well. Ryu has a typical DP and a 3f DP with the right hitbox to show off what I wanted to demonstrate on Safe Jumps and instant overheads. Zangief is the most obvious choice for grabbing and he has the fastest special grab (CA).</dd>
+        <dt>Can you share the tool you used to replicate those experiment?</dt>
+        <dd>Yes? No? Maybe. For now, I have trouble sharing code that can be used for cheating purposes but I may change my opinion on that.</dd>
+        <dt>There is something wrong!</dt>
+        <dd>My inputs are perfect but my reasoning may not be and the way I created may not be as well. Talking to me about it on twitter <a href="https://twitter.com/WydD">@WydD</a> or on reddit /u/-WydD-</dd>
+        <dt>You are missing one weird OS.</dt>
+        <dd>Well I'm not for sophisticated OS here, I already put the Jump Tech OS and the Jump Cancel VT which are already very specific and should be used carefully. But tell me about it and I'll consider and it.</dd>
+        <dt>You are missing this character specific wake-up action.</dt>
+        <dd>For instance, it can be possible to punish a whiffed throw with jump (a dive for instance). But that would make the analysis too complex so I left those options out.</dd>
+    </dl>
+    <h2>General Remarks</h2>
+    <dl>
+        <dt>Some situations are character specific!</dt>
+        <dd>For instance, Instant Overhead vs Invincible Reversal whiffs. This is NOT a general rule, but that's something that should be considered that some situations are weird because of hitboxes.</dd>
+        <dt>You still need to think!</dt>
+        <dd>If you blindly apply the table like a dummy you will do DPs because it's the most preferable defense and you will do meaties or instant overheads all the time. Well for one, instant overheads put you in negative after hit and secondly this is still a mind-game! So applying stuff by rule sets is always a bad idea. This just give you tools to assess a situation.</dd>
+        <dt>Only the first level of the situations is provided.</dt>
+        <dd>Those situations pretty much covers all that is possible to do without taking into account what your adversary is doing (because of reaction time). If the attacker does a light, that you block and go for a throw, that's something that is not covered because more that 20 frames passed after the wake-up and the possible situations count explodes.</dd>
+        <dt>Frame advantage and distance matter.</dt>
+        <dd>While it's hard to assess the better option between two, the result can not be binary. The perfect example is the Jump Tech OS which is most often a bad decision in terms of initiative, but it's the choice that puts you the most far from your opponent where initiative won't matter.</dd>
+        <dt>Actions are performed by a dummy bot.</dt>
+        <dd>Hence, the situation Safe Jump vs Throw hits but any decent player would never tech throw a jumping opponent.</dd>
+        <dt>After a given input, the bot will defend.</dt>
+        <dd>It will guard high if needed. That's why Cammy blocks in Throw vs Jump. But be aware that she still has advantage and can counter after the throw whiff.</dd>
+    </dl>
+
+    <h2>Attack details</h2>
+    <p>
+        Read instructions: the sequence <code>[15, DOWN, LK], [1, DOWN, BACK, LP]</code> can be read as "I press 2LK for 15 frames and then I press 1LP for 1 frame".
+    </p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Low Light</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>4 frames before wake-up: <code>[1, DOWN, LK], [15, DOWN, BACK], [1, DOWN, BACK, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>The LK will hit low on the first frame, it's a perfect meaty because only the last active hits.</dd>
+                <dt>Similar situations:</dt>
+                <dd>Any true meaty that is not a Safe Jump.</dd>
+                <dt>Comments:</dt>
+                <dd>The LP is done to represent the typical block-string / hit-punish situation you want to get. Cammy's 2LP will let her with the initiative for frame traps for instance.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Delayed Light</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[5, DOWN, BACK], [1, DOWN, BACK, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Block any reversal but try to retake the advantage as soon as possible.</dd>
+                <dt>Comments:</dt>
+                <dd>The guard is 5 frames to counter most DP, but Cammy's HK Cannon Strike is 6 frames so it will depend. This is one of the shortest setup you can get. The delay actually influences Delayed vs Delayed situations so you should be aware of what happens.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Delayed Meaty</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>3 frames before wake-up: <code>[1, MP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>A perfect meaty won't provoke a counter-hit. This one will because it hits 3 frames after the wake-up.</dd>
+                <dt>Comments:</dt>
+                <dd>5MP is a classic wake-up choice for Cammy and can provide you great follow-up.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>3 frames before wake-up: <code>[1, LP, LK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Make the throw hit as soon as possible.</dd>
+                <dt>Comments:</dt>
+                <dd>SFIV and SFV have 2f of throw invincibility at wake-up. So that is why it is not 5 frames before wake-up.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Delayed Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[5, DOWN, BACK], [1, LP, LK, DOWN, BACK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Block any reversal but try to do damage while blocking throws.</dd>
+                <dt>Comments:</dt>
+                <dd>Same comments as the delayed light about the length of the delay.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Special Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>[Zangief] 6 frames before wake-up: <code>[1, FORWARD], [1, DOWN], [1, BACK], [1, UP, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Make the special throw hit as soon as possible.</dd>
+                <dt>Comments:</dt>
+                <dd>Because of the 2f of throw invincibility upon wake-up, the delay is 3 (motion) + 5 (startup) - 2 = 6.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Air Special Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>[Zangief] 6 frames before wake-up: <code>[1, UP], [5], [1,FORWARD], [1, DOWN], [1, BACK], [1, UP, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>If the defender has a tendency to jump out your special throw, counter them.</dd>
+                <dt>Comments:</dt>
+                <dd>As the range is decent for Zangief air throw the introduced delay can vary without much changes.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Guard</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[10, DOWN, BACK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Just guard... nothing else to say actually. You feel a DP coming, so wait for it...</dd>
+                <dt>Comments:</dt>
+                <dd>I stay in low guard for 10 frames to reflect the reaction time.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Backdash</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>9 frames before wake-up: <code>[1, BACK], [1], [1, BACK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Bait the dragon to do a massive punish afterwards.</dd>
+                <dt>Comments:</dt>
+                <dd>9 frames before wake-up is the minimal delay to backdash without getting hit by Ryu's MP DP.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Shimmy</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>14 frames before wake-up: <code>[14, BACK], [8, DOWN, BACK], [1, MP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Place yourself at minimal distance to whiff a throw and counter right after.</dd>
+                <dt>Comments:</dt>
+                <dd>Warning, this suppose a clear and straightforward shimmy without any reaction whatsoever. 5MP has been chosen because of its range. 14 frames is the minimal amount to avoid getting thrown, in practice it may be a bit farther which make a reaction from the defense possible.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Safe Jump</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>43 frames before wake-up: <code>[1, UP], [35], [1, HP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Make the first frame of wake-up be the very last frame from the 8HP before landing.</dd>
+                <dt>Comments:</dt>
+                <dd>This is safe against 4f DP and that's the main characteristic. Note that this works because characters land in 4f in SFV (expect Zangief).</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Instant Overhead</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>7 frames before wake-up: <code>[1, UP, FORWARD], [1, LK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Do a meaty on high guard only.</dd>
+                <dt>Comments:</dt>
+                <dd><i class="glyphicon glyphicon-warning-sign" aria-hidden="true"></i> Be very cautious with this one. For one, instant overheads are unsafe on hit! So don't do this unless you can kill or stun! And secondly, this is very character dependent (e.g. Cammy's 9LK makes Ryu's MP DP whiff).</dd>
+            </dl>
+        </div>
+    </div>
+
+    <h2>Defense details</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Low Guard</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[10, DOWN, BACK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Nothing to be said. Guard low.</dd>
+                <dt>Comments:</dt>
+                <dd>10 frames are forced in low guard to take into account the reaction time.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Perfect Guard</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: guard high or low.</dd>
+                <dt>Main idea:</dt>
+                <dd>Block anything that is not a throw.</dd>
+                <dt>Comments:</dt>
+                <dd>No inputs for this one because it is dependent on the attack.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Backdash</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>4 frames before wake-up: <code>[1, BACK], [1], [1, BACK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Backdash is launched upon first frame to avoid getting thrown.</dd>
+                <dt>Comments:</dt>
+                <dd>No much to say</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Jump</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[1, UP], [30], [1, HP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Escape throws and punish after wards.</dd>
+                <dt>Comments:</dt>
+                <dd>I did a neutral jump with a HP to take into account punish a strong punish. If you want to do a jump out, do a Jump Tech OS. Be aware that for normal throw whiffs, you will not have time to punish your opponent. The quickest 8HP that wont whiff is 25f of delay but will depend on character (and it's still not fast enough to not be punished by Cammy's 4MP).</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Jump Tech OS</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[2, DOWN, BACK], [1, UP, BACK, LP, LK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Guard the meaty, jump out or avoid being thrown. If jump out, this will do a 9LK which can hit.</dd>
+                <dt>Comments:</dt>
+                <dd>This has been explained in details by <a href="https://www.youtube.com/watch?v=_YLgIL1qUoU">MDZ jimmY</a> go check it out.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Jump Cancel VT</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>[Dhalsim] At wake-up: <code>[3, UP, BACK], [1, HP, HK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Cancel your pre-jump frames by V-Trigger.</dd>
+                <dt>Comments:</dt>
+                <dd>You won't be affected by meaty throws. We jump 3 frames because the meaty throw happens on the 3rd frame (and after that it is not cancelable anymore). Juri can also cancel but her V-Trigger is not an attack so it will only give her an edge to have time to read your opponent. See <a href="https://twitter.com/TOOLASSlSTED/status/767968279231168512">@TOOLASSISTED</a> study on this.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[1, DOWN, BACK, LK, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>The classic tech throw, you guard or you throw or you avoid being thrown.</dd>
+                <dt>Comments:</dt>
+                <dd>Remember that the bot will activate its defense mode right after the input so any delayed light will be blocked.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Delayed Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>At wake-up: <code>[5, DOWN, BACK], [1, LK, LP, DOWN, BACK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Same idea as the throw but blocks delayed meaties as well.</dd>
+                <dt>Comments:</dt>
+                <dd>This can counter shimmies as shown in the table but this is something that will hugely depend on each timings.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Special Throw</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>[Zangief] 4 frames before wake-up: <code>[1,FORWARD], [1, DOWN], [1, BACK], [1, UP, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>You want to eat delayed inputs (including throws) using a special throw.</dd>
+                <dt>Comments:</dt>
+                <dd>Nothing to be said, the hit will arrive on the 5th frame so any kind of risky delayed input.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>Light</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>1 frames before wake-up: <code>[1, DOWN, BACK, LK]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>The light will come out on the very first frame.</dd>
+                <dt>Comments:</dt>
+                <dd>You have to keep the down back position because a meaty can be blocked.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Invincible Reversal</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>4 frames before wake-up: <code>[1, FORWARD], [1, DOWN], [1, DOWN, FORWARD, MP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Do. A. Dragon. Punch. Go through mind-games like a champ.</dd>
+                <dt>Comments:</dt>
+                <dd>This is Ryu's invincible dragon punch.</dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>3f Reversal</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>4 frames before wake-up: <code>[1, FORWARD], [1, DOWN], [1, DOWN, FORWARD, LP, MP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Use a invincible 3f dragon punch to be even more subtle.</dd>
+                <dt>Comments:</dt>
+                <dd>This goes through safe jumps because 3f is fast enough. Also this will most surely hit all weird instant overhead situations.</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Zangief CA</h4>
+            <dl>
+                <dt>Inputs:</dt>
+                <dd>[Zangief] 8 frames before wake-up: <code>[1, FORWARD], [1, DOWN], [1, BACK], [1, UP], [1,FORWARD], [1, DOWN], [1, BACK], [1, UP, LP]</code>.</dd>
+                <dt>Main idea:</dt>
+                <dd>Use Zangief's 1 frame move to counter everything the attacker does.</dd>
+                <dt>Comments:</dt>
+                <dd>This is reversal and will counter most of your opponent decision if he stays close enough (standard shimmy wont be enough).</dd>
+            </dl>
+        </div>
+    </div>
+
+    <script>
+        render_table();
+        render_legend();
+    </script>
+</div>
+</body>
+</html>
